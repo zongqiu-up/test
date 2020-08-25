@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>promise</title>
+    </head>
+    <body>
+        <script>
+            //   假设接口之间有依赖性/关联性,如何使用 promise 来
+            //   确保请求的顺序?
+            //   https://edu.couchpotato.fun/getKey
+            //   https://edu.couchpotato.fun/getPrize
+            function _ajax({ method = "GET", url }) {
+                return new Promise(function (resolve, reject) {
+                    let xhr = new XMLHttpRequest();
+                    xhr.open(method, url);
+                    xhr.addEventListener("readystatechange", () => {
+                        if (xhr.readyState !== 4) {
+                            return;
+                        }
+                        if (xhr.status == 200) {
+                            resolve(JSON.parse(xhr.response));
+                        } else {
+                            // 传递一个包含错误信息的自定义对象, 有助于定位到具体的失败请求
+                            reject({
+                                msg: "接口请求失败",
+                                url: url,
+                                status: xhr.status,
+                            });
+                        }
+                    });
+                    xhr.send();
+                });
+            }
+            _ajax({
+                url: "https://edu.couchpotato.fun/getKey",
+            })
+                .then((res) => {
+                    let key = res.data.key;
+                    let url = `https://edu.couchpotato.fun/getPrize?key=${key}`;
+                    // 在 then 回调内 返回新的 Promise 实例, 就可以
+                    //   在后续的 .then 继续处理 新的 Promise 回调
+                    return _ajax({
+                        url,
+                    });
+                })
+                .then((prizeData) => {
+                    console.log(prizeData);
+                })
+                .catch((err) => {
+                    console.log(err);
+                });
+        </script>
+    </body>
+</html>
